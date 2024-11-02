@@ -1,8 +1,41 @@
 const fetch = require('node-fetch'); // Para buscar dados da URL
 const cheerio = require('cheerio'); // Para manipular e buscar dados no HTML
+const nodemailer = require('nodemailer'); // Para enviar e-mail
+require('dotenv').config(); // Carrega as variáveis de ambiente do arquivo .env
 
-var url = 'https://www.apac.pe.gov.br/avisos'; // URL da página da lista de avisos
+// Criação do transportador de e-mail com base nas variáveis de ambiente
+const transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT,
+    secure: false, // true para 465, false para outras portas
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
 
+// Função para enviar o e-mail
+async function sendEmail(dados) {
+    try {
+      const info = await transporter.sendMail({
+        from: `"Nome do Remetente" <${process.env.EMAIL_USER}>`, // Remetente
+        to: process.env.EMAIL_TO, // Lista de destinatários
+        subject: 'Dados Coletados', // Assunto
+        text: JSON.stringify(dados, null, 2), // Corpo do e-mail em texto simples
+        html: `<pre>${JSON.stringify(dados, null, 2)}</pre>`, // Corpo do e-mail em HTML
+      });
+  
+      console.log('E-mail enviado: %s', info.messageId);
+    } catch (error) {
+      console.error('Erro ao enviar o e-mail:', error);
+    }
+  }
+
+
+
+var url = 'https://www.apac.pe.gov.br/avisos';// URL da página da lista de avisos
+
+// Função para realizar Web Scraping
 async function fetchData() {
     try {
             // Faz a requisição da página de lista de avisos
@@ -50,12 +83,13 @@ async function fetchData() {
                 Validade,
             });
         }
-
         // Exibe os dados no console
-        console.log('\n Dados Coletados \n', DadosColetados);
+        await console.log('\n Dados Coletados \n', DadosColetados);
+        await sendEmail(DadosColetados);        
     } catch (error) {
         console.error('Erro ao buscar dados:', error);
     }
+    
 }
 
 fetchData();
